@@ -13,6 +13,7 @@ export function SearchBar({ onLocationSelect }: SearchBarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   // Debounce search query
   useEffect(() => {
@@ -48,6 +49,17 @@ export function SearchBar({ onLocationSelect }: SearchBarProps) {
     }
   };
 
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    // Delay blur to allow clicks on results
+    setTimeout(() => {
+      setIsFocused(false);
+    }, 200);
+  };
+
   return (
     <div className="relative w-full">
       <div className="relative">
@@ -57,6 +69,8 @@ export function SearchBar({ onLocationSelect }: SearchBarProps) {
           placeholder="Search for a city..."
           value={searchQuery}
           onChange={handleInputChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           data-testid="input-search"
           className="pl-10 pr-4 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
         />

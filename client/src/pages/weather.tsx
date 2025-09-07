@@ -7,7 +7,7 @@ import { WeatherDetails } from "@/components/weather/weather-details";
 import { SearchBar } from "@/components/weather/search-bar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { CloudSun, MapPin, Settings } from "lucide-react";
+import { CloudSun, MapPin } from "lucide-react";
 import type { CurrentWeather as CurrentWeatherType, Forecast as ForecastType, AirQuality } from "@shared/schema";
 
 export default function WeatherPage() {
@@ -116,18 +116,21 @@ export default function WeatherPage() {
       <header className="sticky top-0 z-50 glass-effect border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
+            {/* Logo - Hidden on mobile when search is focused */}
+            <div className="flex items-center space-x-3 sm:flex">
               <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
                 <CloudSun className="w-4 h-4 text-white" />
               </div>
-              <h1 className="text-xl font-semibold text-foreground">WeatherScope</h1>
+              <h1 className="hidden sm:block text-xl font-semibold text-foreground">WeatherScope</h1>
             </div>
             
-            <div className="flex-1 max-w-md mx-8">
+            {/* Search Bar - Expands on mobile */}
+            <div className="flex-1 max-w-md mx-4 sm:mx-8">
               <SearchBar onLocationSelect={handleLocationSelect} />
             </div>
             
-            <div className="flex items-center space-x-4">
+            {/* Actions */}
+            <div className="flex items-center">
               <Button
                 variant="ghost"
                 size="icon"
@@ -136,15 +139,6 @@ export default function WeatherPage() {
                 className="hover:bg-secondary"
               >
                 <MapPin className="w-4 h-4" />
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="icon"
-                data-testid="button-settings"
-                className="hover:bg-secondary"
-              >
-                <Settings className="w-4 h-4" />
               </Button>
             </div>
           </div>
