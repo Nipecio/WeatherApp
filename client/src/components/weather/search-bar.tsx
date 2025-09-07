@@ -36,7 +36,8 @@ export function SearchBar({ onLocationSelect }: SearchBarProps) {
 
   const handleLocationSelect = (result: GeocodingResult) => {
     onLocationSelect(result.lat, result.lon);
-    setSearchQuery(`${result.name}, ${result.country}`);
+    setSearchQuery(""); // Clear the search input
+    setDebouncedQuery(""); // Clear the debounced query to hide results
     setIsOpen(false);
   };
 
