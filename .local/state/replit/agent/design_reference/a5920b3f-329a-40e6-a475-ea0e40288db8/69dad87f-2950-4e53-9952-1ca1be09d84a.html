@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeatherScope - Global Weather Station</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                }
+            },
+        }
+    };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --radius: 0.75rem;
+            --background: hsl(220 15% 6%);
+            --foreground: hsl(210 40% 98%);
+            --card: hsl(222 10% 12%);
+            --card-foreground: hsl(210 40% 96%);
+            --primary: hsl(200 100% 50%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(217 33% 17%);
+            --secondary-foreground: hsl(210 40% 96%);
+            --muted: hsl(215 28% 17%);
+            --muted-foreground: hsl(217 10% 65%);
+            --accent: hsl(35 100% 60%);
+            --accent-foreground: hsl(210 40% 2%);
+            --border: hsl(215 28% 17%);
+            --input: hsl(215 28% 17%);
+            --ring: hsl(200 100% 50%);
+            --font-sans: 'Inter', system-ui, sans-serif;
+        }
+        
+        body {
+            font-family: var(--font-sans);
+            background: linear-gradient(135deg, hsl(220 40% 8%) 0%, hsl(215 50% 12%) 100%);
+            min-height: 100vh;
+        }
+        
+        .weather-gradient-sunny {
+            background: linear-gradient(135deg, hsl(45 100% 70%) 0%, hsl(35 100% 60%) 50%, hsl(25 100% 55%) 100%);
+        }
+        
+        .weather-gradient-cloudy {
+            background: linear-gradient(135deg, hsl(215 25% 35%) 0%, hsl(210 30% 45%) 50%, hsl(205 35% 55%) 100%);
+        }
+        
+        .weather-gradient-rainy {
+            background: linear-gradient(135deg, hsl(210 60% 25%) 0%, hsl(215 70% 35%) 50%, hsl(220 80% 45%) 100%);
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        
+        .forecast-scroll {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .forecast-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .temperature-large {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 300;
+            line-height: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .temperature-large {
+                font-size: clamp(2.5rem, 12vw, 4rem);
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-foreground">
+    <!-- @COMPONENT: WeatherApp [Main application container] -->
+    <div class="min-h-screen">
+        <!-- @COMPONENT: Header [App navigation and search] -->
+        <header class="sticky top-0 z-50 glass-effect border-b border-border">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+                            <i class="fas fa-cloud-sun text-white text-sm"></i>
+                        </div>
+                        <h1 class="text-xl font-semibold text-foreground">WeatherScope</h1>
+                    </div>
+                    
+                    <!-- @COMPONENT: SearchBar [Location search with autocomplete] -->
+                    <div class="flex-1 max-w-md mx-8">
+                        <div class="relative">
+                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm"></i>
+                            <input 
+                                type="text" 
+                                placeholder="Search for a city..." 
+                                class="w-full pl-10 pr-4 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-ring focus:border-transparent transition-all"
+                                data-implementation="Implement autocomplete with OpenWeatherMap geocoding API"
+                                data-mock="true"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <!-- @COMPONENT: LocationButton [Get current location] -->
+                        <button 
+                            class="p-2 hover:bg-secondary rounded-lg transition-colors"
+                            data-event="click:getCurrentLocation"
+                            data-implementation="Use geolocation API to get user coordinates"
+                        >
+                            <i class="fas fa-location-dot text-muted-foreground hover:text-foreground transition-colors"></i>
+                        </button>
+                        
+                        <!-- @COMPONENT: SettingsButton [App settings] -->
+                        <button 
+                            class="p-2 hover:bg-secondary rounded-lg transition-colors"
+                            data-event="click:openSettings"
+                        >
+                            <i class="fas fa-cog text-muted-foreground hover:text-foreground transition-colors"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: Header -->
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- @COMPONENT: CurrentWeather [Main weather display] -->
+            <div class="weather-gradient-sunny rounded-2xl p-8 mb-8 text-white relative overflow-hidden">
+                <!-- Background pattern overlay -->
+                <div class="absolute inset-0 opacity-10">
+                    <!-- Decorative weather pattern -->
+                    <div class="absolute top-4 right-4 w-32 h-32 rounded-full border-2 border-white opacity-20"></div>
+                    <div class="absolute top-8 right-8 w-24 h-24 rounded-full border border-white opacity-15"></div>
+                </div>
+                
+                <div class="relative z-10">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between">
+                        <div class="mb-6 lg:mb-0">
+                            <!-- @COMPONENT: LocationDisplay [Current location] -->
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-location-dot mr-2"></i>
+                                <span class="text-lg" data-bind="weather.location">San Francisco, CA</span>
+                                <span class="ml-2 text-sm opacity-75" data-bind="weather.country">United States</span>
+                            </div>
+                            
+                            <div class="text-sm opacity-75 mb-4" data-bind="weather.lastUpdated">Updated 5 minutes ago</div>
+                            
+                            <!-- @COMPONENT: CurrentConditions [Temperature and conditions] -->
+                            <div class="flex items-start space-x-8">
+                                <div>
+                                    <div class="temperature-large" data-bind="weather.temperature">22°</div>
+                                    <div class="text-lg mb-2" data-bind="weather.condition">Partly Cloudy</div>
+                                    <div class="text-sm opacity-75">
+                                        Feels like <span data-bind="weather.feelsLike">25°</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-6xl opacity-90 mt-4">
+                                    <i class="fas fa-cloud-sun" data-bind="weather.icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- @COMPONENT: TempToggle [Celsius/Fahrenheit toggle] -->
+                        <div class="flex flex-col items-end space-y-4">
+                            <div class="bg-white/20 rounded-lg p-1 flex">
+                                <button 
+                                    class="px-3 py-1 rounded-md bg-white text-accent-foreground text-sm font-medium"
+                                    data-event="click:setTempUnit('celsius')"
+                                    data-state="active"
+                                >
+                                    °C
+                                </button>
+                                <button 
+                                    class="px-3 py-1 rounded-md text-white text-sm font-medium hover:bg-white/20 transition-colors"
+                                    data-event="click:setTempUnit('fahrenheit')"
+                                >
+                                    °F
+                                </button>
+                            </div>
+                            
+                            <!-- High/Low temperatures -->
+                            <div class="text-right">
+                                <div class="text-sm opacity-75">Today</div>
+                                <div class="text-lg">
+                                    <span data-bind="weather.high">28°</span> / <span data-bind="weather.low" class="opacity-75">15°</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: CurrentWeather -->
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- @COMPONENT: WeatherDetails [Additional weather information] -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- 5-Day Forecast -->
+                    <div class="glass-effect rounded-xl p-6">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fas fa-calendar-days mr-2 text-primary"></i>
+                            5-Day Forecast
+                        </h3>
+                        
+                        <!-- @MAP: forecast.map(day => ( -->
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 hover:bg-secondary/50 rounded-lg transition-colors" data-mock="true">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 text-center">
+                                        <div class="font-medium">Today</div>
+                                        <div class="text-sm text-muted-foreground">Dec 15</div>
+                                    </div>
+                                    <i class="fas fa-sun text-2xl text-amber-400"></i>
+                                    <div>
+                                        <div class="font-medium">Sunny</div>
+                                        <div class="text-sm text-muted-foreground">Clear skies</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-semibold">28° / 15°</div>
+                                    <div class="text-sm text-muted-foreground">Precipitation: 0%</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 hover:bg-secondary/50 rounded-lg transition-colors" data-mock="true">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 text-center">
+                                        <div class="font-medium">Tomorrow</div>
+                                        <div class="text-sm text-muted-foreground">Dec 16</div>
+                                    </div>
+                                    <i class="fas fa-cloud-rain text-2xl text-blue-400"></i>
+                                    <div>
+                                        <div class="font-medium">Light Rain</div>
+                                        <div class="text-sm text-muted-foreground">Scattered showers</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-semibold">23° / 12°</div>
+                                    <div class="text-sm text-muted-foreground">Precipitation: 65%</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 hover:bg-secondary/50 rounded-lg transition-colors" data-mock="true">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 text-center">
+                                        <div class="font-medium">Wed</div>
+                                        <div class="text-sm text-muted-foreground">Dec 17</div>
+                                    </div>
+                                    <i class="fas fa-cloud text-2xl text-gray-400"></i>
+                                    <div>
+                                        <div class="font-medium">Cloudy</div>
+                                        <div class="text-sm text-muted-foreground">Overcast</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-semibold">20° / 10°</div>
+                                    <div class="text-sm text-muted-foreground">Precipitation: 20%</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 hover:bg-secondary/50 rounded-lg transition-colors" data-mock="true">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 text-center">
+                                        <div class="font-medium">Thu</div>
+                                        <div class="text-sm text-muted-foreground">Dec 18</div>
+                                    </div>
+                                    <i class="fas fa-cloud-sun text-2xl text-amber-300"></i>
+                                    <div>
+                                        <div class="font-medium">Partly Cloudy</div>
+                                        <div class="text-sm text-muted-foreground">Some clouds</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-semibold">25° / 13°</div>
+                                    <div class="text-sm text-muted-foreground">Precipitation: 10%</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 hover:bg-secondary/50 rounded-lg transition-colors" data-mock="true">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 text-center">
+                                        <div class="font-medium">Fri</div>
+                                        <div class="text-sm text-muted-foreground">Dec 19</div>
+                                    </div>
+                                    <i class="fas fa-sun text-2xl text-amber-400"></i>
+                                    <div>
+                                        <div class="font-medium">Sunny</div>
+                                        <div class="text-sm text-muted-foreground">Clear and bright</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-semibold">27° / 16°</div>
+                                    <div class="text-sm text-muted-foreground">Precipitation: 5%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                    
+                    <!-- Hourly Forecast -->
+                    <div class="glass-effect rounded-xl p-6">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fas fa-clock mr-2 text-primary"></i>
+                            Today's Hourly Forecast
+                        </h3>
+                        
+                        <div class="forecast-scroll overflow-x-auto">
+                            <div class="flex space-x-4 pb-2">
+                                <!-- @MAP: hourlyForecast.map(hour => ( -->
+                                <div class="flex-shrink-0 text-center p-3 hover:bg-secondary/50 rounded-lg transition-colors min-w-[80px]" data-mock="true">
+                                    <div class="text-sm text-muted-foreground mb-2">Now</div>
+                                    <i class="fas fa-sun text-xl text-amber-400 mb-2"></i>
+                                    <div class="font-semibold">22°</div>
+                                    <div class="text-xs text-muted-foreground mt-1">0%</div>
+                                </div>
+                                
+                                <div class="flex-shrink-0 text-center p-3 hover:bg-secondary/50 rounded-lg transition-colors min-w-[80px]" data-mock="true">
+                                    <div class="text-sm text-muted-foreground mb-2">2 PM</div>
+                                    <i class="fas fa-cloud-sun text-xl text-amber-300 mb-2"></i>
+                                    <div class="font-semibold">24°</div>
+                                    <div class="text-xs text-muted-foreground mt-1">5%</div>
+                                </div>
+                                
+                                <div class="flex-shrink-0 text-center p-3 hover:bg-secondary/50 rounded-lg transition-colors min-w-[80px]" data-mock="true">
+                                    <div class="text-sm text-muted-foreground mb-2">3 PM</div>
+                                    <i class="fas fa-cloud text-xl text-gray-400 mb-2"></i>
+                                    <div class="font-semibold">26°</div>
+                                    <div class="text-xs text-muted-foreground mt-1">15%</div>
+                                </div>
+                                
+                                <div class="flex-shrink-0 text-center p-3 hover:bg-secondary/50 rounded-lg transition-colors min-w-[80px]" data-mock="true">
+                                    <div class="text-sm text-muted-foreground mb-2">4 PM</div>
+                                    <i class="fas fa-cloud-rain text-xl text-blue-400 mb-2"></i>
+                                    <div class="font-semibold">23°</div>
+                                    <div class="text-xs text-muted-foreground mt-1">60%</div>
+                                </div>
+                                
+                                <div class="flex-shrink-0 text-center p-3 hover:bg-secondary/50 rounded-lg transition-colors min-w-[80px]" data-mock="true">
+                                    <div class="text-sm text-muted-foreground mb-2">5 PM</div>
+                                    <i class="fas fa-cloud-rain text-xl text-blue-400 mb-2"></i>
+                                    <div class="font-semibold">21°</div>
+                                    <div class="text-xs text-muted-foreground mt-1">75%</div>
+                                </div>
+                                
+                                <div class="flex-shrink-0 text-center p-3 hover:bg-secondary/50 rounded-lg transition-colors min-w-[80px]" data-mock="true">
+                                    <div class="text-sm text-muted-foreground mb-2">6 PM</div>
+                                    <i class="fas fa-cloud text-xl text-gray-400 mb-2"></i>
+                                    <div class="font-semibold">20°</div>
+                                    <div class="text-xs text-muted-foreground mt-1">30%</div>
+                                </div>
+                                <!-- @END_MAP )) -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- @COMPONENT: WeatherMetrics [Detailed weather information] -->
+                <div class="space-y-6">
+                    <!-- Weather Details Grid -->
+                    <div class="glass-effect rounded-xl p-6">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fas fa-info-circle mr-2 text-primary"></i>
+                            Weather Details
+                        </h3>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                <div class="flex items-center mb-1">
+                                    <i class="fas fa-eye text-primary text-sm mr-2"></i>
+                                    <span class="text-sm text-muted-foreground">Visibility</span>
+                                </div>
+                                <div class="text-xl font-semibold" data-bind="weather.visibility">10 km</div>
+                            </div>
+                            
+                            <div class="p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                <div class="flex items-center mb-1">
+                                    <i class="fas fa-droplet text-primary text-sm mr-2"></i>
+                                    <span class="text-sm text-muted-foreground">Humidity</span>
+                                </div>
+                                <div class="text-xl font-semibold" data-bind="weather.humidity">65%</div>
+                            </div>
+                            
+                            <div class="p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                <div class="flex items-center mb-1">
+                                    <i class="fas fa-wind text-primary text-sm mr-2"></i>
+                                    <span class="text-sm text-muted-foreground">Wind</span>
+                                </div>
+                                <div class="text-xl font-semibold" data-bind="weather.windSpeed">12 km/h</div>
+                                <div class="text-xs text-muted-foreground" data-bind="weather.windDirection">NW</div>
+                            </div>
+                            
+                            <div class="p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                <div class="flex items-center mb-1">
+                                    <i class="fas fa-gauge text-primary text-sm mr-2"></i>
+                                    <span class="text-sm text-muted-foreground">Pressure</span>
+                                </div>
+                                <div class="text-xl font-semibold" data-bind="weather.pressure">1013</div>
+                                <div class="text-xs text-muted-foreground">hPa</div>
+                            </div>
+                            
+                            <div class="p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                <div class="flex items-center mb-1">
+                                    <i class="fas fa-sun text-primary text-sm mr-2"></i>
+                                    <span class="text-sm text-muted-foreground">UV Index</span>
+                                </div>
+                                <div class="text-xl font-semibold" data-bind="weather.uvIndex">6</div>
+                                <div class="text-xs text-muted-foreground">High</div>
+                            </div>
+                            
+                            <div class="p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                <div class="flex items-center mb-1">
+                                    <i class="fas fa-temperature-half text-primary text-sm mr-2"></i>
+                                    <span class="text-sm text-muted-foreground">Dew Point</span>
+                                </div>
+                                <div class="text-xl font-semibold" data-bind="weather.dewPoint">16°</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sun & Moon -->
+                    <div class="glass-effect rounded-xl p-6">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fas fa-sun mr-2 text-primary"></i>
+                            Sun & Moon
+                        </h3>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                <div class="flex items-center">
+                                    <i class="fas fa-sunrise text-amber-400 mr-3"></i>
+                                    <span>Sunrise</span>
+                                </div>
+                                <span class="font-medium" data-bind="weather.sunrise">6:42 AM</span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                <div class="flex items-center">
+                                    <i class="fas fa-sunset text-orange-400 mr-3"></i>
+                                    <span>Sunset</span>
+                                </div>
+                                <span class="font-medium" data-bind="weather.sunset">7:28 PM</span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                <div class="flex items-center">
+                                    <i class="fas fa-moon text-blue-300 mr-3"></i>
+                                    <span>Moon Phase</span>
+                                </div>
+                                <span class="font-medium" data-bind="weather.moonPhase">Waning Crescent</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Air Quality -->
+                    <div class="glass-effect rounded-xl p-6">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fas fa-leaf mr-2 text-primary"></i>
+                            Air Quality
+                        </h3>
+                        
+                        <div class="text-center mb-4">
+                            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-500/20 mb-2">
+                                <span class="text-2xl font-bold text-green-400" data-bind="weather.aqi">42</span>
+                            </div>
+                            <div class="text-sm text-muted-foreground">AQI</div>
+                            <div class="font-medium text-green-400" data-bind="weather.aqiStatus">Good</div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3 text-sm">
+                            <div class="text-center p-2 bg-secondary/30 rounded">
+                                <div class="text-muted-foreground">PM2.5</div>
+                                <div class="font-medium" data-bind="weather.pm25">12</div>
+                            </div>
+                            <div class="text-center p-2 bg-secondary/30 rounded">
+                                <div class="text-muted-foreground">PM10</div>
+                                <div class="font-medium" data-bind="weather.pm10">18</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: WeatherMetrics -->
+            </div>
+        </main>
+        
+        <!-- @COMPONENT: Footer [App information] -->
+        <footer class="border-t border-border bg-card/50 backdrop-blur-sm mt-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div class="flex flex-col md:flex-row items-center justify-between">
+                    <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                        <span class="text-sm text-muted-foreground">
+                            Weather data provided by OpenWeatherMap API
+                        </span>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+                            <span class="text-sm text-muted-foreground">Live data</span>
+                        </div>
+                    </div>
+                    <div class="text-sm text-muted-foreground">
+                        Last updated: <span data-bind="app.lastUpdate">5 minutes ago</span>
+                    </div>
+                </div>
+            </div>
+        </footer>
+        <!-- @END_COMPONENT: Footer -->
+    </div>
+    <!-- @END_COMPONENT: WeatherApp -->
+
+    <script>
+        // TODO: Implement OpenWeatherMap API integration
+        // TODO: Add geolocation functionality
+        // TODO: Implement temperature unit conversion
+        // TODO: Add error handling for API failures
+        // TODO: Implement loading states during data fetching
+        // TODO: Add location autocomplete functionality
+        
+        (function() {
+            // Mock functionality for demonstration
+            const mockWeatherData = {
+                location: "San Francisco, CA",
+                temperature: 22,
+                condition: "Partly Cloudy",
+                feelsLike: 25,
+                high: 28,
+                low: 15,
+                humidity: 65,
+                windSpeed: "12 km/h",
+                visibility: "10 km",
+                pressure: 1013,
+                uvIndex: 6,
+                sunrise: "6:42 AM",
+                sunset: "7:28 PM"
+            };
+
+            // Temperature unit toggle functionality
+            const tempButtons = document.querySelectorAll('[data-event*="setTempUnit"]');
+            tempButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active state from all buttons
+                    tempButtons.forEach(btn => {
+                        btn.classList.remove('bg-white', 'text-accent-foreground');
+                        btn.classList.add('text-white', 'hover:bg-white/20');
+                    });
+                    
+                    // Add active state to clicked button
+                    this.classList.add('bg-white', 'text-accent-foreground');
+                    this.classList.remove('text-white', 'hover:bg-white/20');
+                    
+                    // TODO: Implement actual temperature conversion
+                    console.log('Temperature unit changed');
+                });
+            });
+
+            // Location search functionality
+            const searchInput = document.querySelector('input[type="text"]');
+            searchInput.addEventListener('input', function() {
+                // TODO: Implement autocomplete with OpenWeatherMap geocoding API
+                console.log('Searching for:', this.value);
+            });
+
+            // Get current location functionality
+            const locationButton = document.querySelector('[data-event*="getCurrentLocation"]');
+            locationButton.addEventListener('click', function() {
+                // TODO: Implement geolocation API
+                console.log('Getting current location...');
+                
+                // Mock loading state
+                this.innerHTML = '<i class="fas fa-spinner fa-spin text-muted-foreground"></i>';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-location-dot text-muted-foreground hover:text-foreground transition-colors"></i>';
+                }, 2000);
+            });
+
+            console.log('WeatherScope initialized');
+        })();
+    </script>
+</body>
+</html>
