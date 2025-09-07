@@ -21,6 +21,10 @@
     <meta name="apple-mobile-web-app-title" content="WeatherScope" />
     <meta name="apple-mobile-web-app-status-bar-style"
     content="black-translucent/>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
 
     <!-- App icons for iOS Home Screen -->
     <link rel="apple-touch-icon" href="icon.png" />
@@ -35,6 +39,17 @@
       body {
         height: 100%;
         background: #123456;
+      }
+
+      html {
+        background: #123456;
+        min-height: 100vh;
+
+        /* Make background extend under the notch & home indicator */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
       }
 
       html {
